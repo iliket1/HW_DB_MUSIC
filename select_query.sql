@@ -1,8 +1,10 @@
 -- Название и продолжительность самого длительного трека
 SELECT song_name, duration 
 FROM songs 
-ORDER BY duration DESC 
-LIMIT 1;
+WHERE duration = (
+   SELECT MAX(duration)
+   FROM songs
+   );
 
 -- Название треков, продолжительность которых не менее 3,5 минут (210 секунд)
 SELECT song_name 
@@ -45,9 +47,12 @@ GROUP BY a.album_name;
 -- Все исполнители, которые не выпустили альбомы в 2020 году
 SELECT ar.artist_name
 FROM artists ar
-LEFT JOIN artists_albums aa ON ar.artist_id = aa.artist_id
-LEFT JOIN albums al ON aa.album_id = al.album_id AND al.release_year = '2020-01-01'
-WHERE al.album_id IS NULL;
+WHERE ar.artist_id NOT IN (
+    SELECT distinct aa.artist_id
+    FROM artists_albums aa
+    JOIN albums al ON aa.album_id = al.album_id
+    WHERE al.release_year = '2020-01-01'
+);
 
 -- Названия сборников, в которых присутствует конкретный исполнитель
 SELECT c.collection_name
@@ -86,5 +91,11 @@ SELECT a.album_name
 FROM albums a
 JOIN songs s ON a.album_id = s.album_id
 GROUP BY a.album_name
-ORDER BY COUNT(s.song_id) ASC
-LIMIT 1;
+HAVING COUNT(s.song_id) < (
+  SELECT COUNT(s.song_id)
+  FROM albums a
+  JOIN songs s ON a.album_id = s.album_id
+  GROUP BY a.album_name
+  ORDER BY COUNT(s.song_id) ASC
+  LIMIT 1
+);
